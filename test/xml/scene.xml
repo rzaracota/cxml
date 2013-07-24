@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" lang="english" ?>
+<scene name="test_scene" resource="assets/scenes/test_scene" binary_file="test_scene.sc">
+  <objects count="2">
+    <object name="object_1">
+      <id>0</id>
+      <mieru>true</mieru>
+      <mesh resource="assets/models/octahedron" />
+    </object>
+    <object name="object_2">
+      <id>1</id>
+      <mieru>false</mieru>
+      <position i="0.0" j="0.0" k="0.0" />
+      <mesh resource="assets/models/level1.obj" />
+    </object>
+  </objects>
+  <zones>
+    <zone name="zone1">
+      <position i="0" j="0" k="0" />
+      <ref_objects count="1">
+	<object_ref>
+	  <name>octahedron</name>
+	  <id>0</id>
+	  <parent_id>0</parent_id>
+	  <position i="0.0" j="0.0" k="0.0" />
+	  <rotation i="0.0" j="0.0" k="0.0" />
+	  <scale i="1.0" j="1.0" k="1.0" />
+	</object_ref>
+      </ref_objects>
+    </zone>
+  </zones>
+</scene>
