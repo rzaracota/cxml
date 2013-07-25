@@ -20,6 +20,21 @@ int main(int argc, char * argv[]) {
   return 0;
 }
 
+static void display_attribute(const Attribute * attribute) {
+  printf("identifier: %s\n", attribute->identifier);
+  printf("value: %s\n", attribute->value);
+}
+
+static void display_attributes(const Node * node) {
+  printf("--attributes--\n");
+
+  for (int i = 0; i < node->attribute_count; i++) {
+    printf("[%d]:\n", i);
+
+    display_attribute(node->attributes + i);
+  }
+}
+
 static void display_declaration(const Declaration * declaration) {
   printf("--Declaration--\n");
 
@@ -45,4 +60,11 @@ static void display_document(const CXMLDocument * document) {
   printf("nodes: %p\n", document->nodes);
 
   display_declaration(&document->declaration);
+
+  if (document->attribute_count > 0) {
+    Node node = { .attribute_count = document->attribute_count,
+		  .attributes = document->attributes };
+
+    display_attributes(&node);
+  }
 }

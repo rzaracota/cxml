@@ -23,16 +23,46 @@ CXMLDocument * CXMLDocument_Create(const char * resource) {
   return document;
 }
 
-static void * safe_free(void * pointer) {
-  if (pointer != 0) {
-    free(pointer);
+CXMLDocument * CXMLDocument_AddAttribute(CXMLDocument * document,
+					 char * attribute, char * value) {
+  if (attribute == 0 || value == 0) {
+    printf("##invalid attribute specified.##\n");
 
-    pointer = 0;
-  } else {
-    printf("##Attempted to free null pointer.##\n");
+    return document;
   }
 
-  return pointer;
+  Attribute * ab = (Attribute *)malloc(sizeof (Attribute) *
+				       (document->attribute_count + 1));
+
+  if (document->attribute_count > 0) {
+    if (document->attributes == 0) {
+      printf("##document attributes misaligned.##\n");
+
+      return document;
+    }
+
+    memcpy(ab, document->attributes, sizeof (Attribute) *
+	   document->attribute_count);
+  }
+
+  int iter = document->attribute_count;
+
+  char * string = attribute;
+  int len = strlen(string) + 1;
+
+  ab[iter].identifier = (char *)malloc(sizeof (char) * len);
+  strcpy(ab[iter].identifier, string);
+
+  string = value;
+
+  len = strlen(string) + 1;
+
+  ab[iter].value = (char *)malloc(sizeof (char) * len);
+  strcpy(ab[iter].value, string);
+
+  document->attributes = ab;
+
+  return document;
 }
 
 static Attribute * destroy_attribute(Attribute * attribute) {

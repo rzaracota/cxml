@@ -1,11 +1,12 @@
 all: static shared
 static: objects
-	ar rcs lib/libCXML.a.0.1 objects/document/document.o objects/load/load.o
+	ar rcs lib/libCXML.a.0.1 objects/document/document.o objects/load/load.o objects/cxml.o
 	ln -fsv ./libCXML.a.0.1 lib/libCXML.a
 shared: static
 	gcc -shared -Wl,-soname,libCXML.so.0.1 objects/document/document.o objects/load/load.o -o lib/libCXML.so.0.1
 	ln -fsv ./libCXML.so.0.1 lib/libCXML.so
-objects: document load save
+objects: document load save cxml.c
+	gcc -std=c99 -Iinclude cxml.c -g -c -o objects/cxml.o
 document: document/document.c
 	gcc -std=c99 -Iinclude document/document.c -fpic -g -c -o objects/document/document.o
 load: load/load.c

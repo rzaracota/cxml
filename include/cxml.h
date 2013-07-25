@@ -7,6 +7,8 @@
 
 #include <sys/mman.h>
 
+void * safe_free(void * pointer);
+
 typedef struct _Declaration {
   char * version;
   char * language;

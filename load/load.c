@@ -96,9 +96,14 @@ static char * get_identifier(char * const beg) {
 
   identifier[i] = '\0';
 
-  printf("identifier: %s\n", identifier);
+  printf("identifier: |%s|\n", identifier);
 
   return identifier;
+}
+
+static void add_attribute(CXMLDocument * document, char * attribute,
+			  char * value) {
+  CXMLDocument_AddAttribute(document, attribute, value);
 }
 
 static void kill_comment(char * const beg) {
@@ -149,7 +154,7 @@ static void parse_declaration(CXMLDocument * document, char * const beg) {
       continue;
     } else if (*(iter) == '?') {
       if (*(iter + 1) == RIGHT_ALLIGATOR) {
-	_iterator = iter - beg;
+	_iterator = iter - beg + 2;
 
 	return;
       } else {
@@ -197,13 +202,15 @@ static void parse_buffer(CXMLDocument * document) {
     return;
   }
 
+  char * identifier = 0;
+
   int i = 0;
 
   while (*(buffer + i) != 0) {
     for (; buffer[i] != LEFT_ALLIGATOR && whitespace(buffer[i]); i++);
 
     if (buffer[i] != LEFT_ALLIGATOR) {
-      printf("invalid initial character.");
+      printf("invalid initial character.\n");
       printf("buffer[%d]: %c\n", i, buffer[i]);
 
       return;
@@ -221,14 +228,22 @@ static void parse_buffer(CXMLDocument * document) {
       continue;
     }    
 
-    char * identifier = get_identifier(buffer + i + 1);
+    identifier = get_identifier(buffer + i + 1);
+
+    i += _iterator + 1;
 
     if (strcmp(identifier, "?xml") == 0) {
       printf("xml declaration initial found; attempting to parse.\n");
 
-      parse_declaration(document, buffer + _iterator + i + 1);
+      parse_declaration(document, buffer + i);
 
-      break;
+      i += _iterator + 1;
+
+      if (identifier != 0) {
+	free(identifier);
+
+	identifier = 0;
+      }
     } else {
       char * hybrid_name = 0;
 
@@ -244,6 +259,64 @@ static void parse_buffer(CXMLDocument * document) {
 	document->resource = hybrid_name;
       } else {
 	document->resource = identifier;
+      }
+
+      if (identifier != 0) {
+	free(identifier);
+
+	identifier = 0;
+      }
+
+      int j = i;
+
+      char * attribute = 0;
+      char * value = 0;
+
+      for (; buffer[j] != RIGHT_ALLIGATOR;) {
+	while(whitespace(buffer[j])) j++;
+
+	attribute = get_identifier(buffer + j);
+
+	j += _iterator;
+
+	printf("%s$%c\n", attribute, buffer[j]);
+
+	value = get_value(buffer + j);
+
+	j += _iterator;
+
+	printf("%s$%c\n", value, buffer[j]);
+
+	if (attribute != 0) {
+	  if (value == 0) {
+	    printf("##Invalid attribute specification.##\n");
+
+	    return;
+	  }
+	  
+	  CXMLDocument_AddAttribute(document, attribute, value);
+
+	  //attribute = safe_free(attribute);
+
+	  //value = safe_free(value);
+
+	  document->attribute_count++;
+
+	  attribute = 0;
+	  value = 0;
+	}
+      }
+
+      if (buffer[j] == RIGHT_ALLIGATOR) {
+	if (buffer[j - 1] == '/') {
+	  printf("##null document##\n");
+
+	  return;
+	} else {
+	  printf("\033[0;32mdocument node parsing complete.\033[0m\n");
+	  
+	  return;
+	}
       }
     }
   }
