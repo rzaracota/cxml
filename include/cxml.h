@@ -41,4 +41,10 @@ typedef struct _CXMLDocument {
   };
 } CXMLDocument;
 
+#include "document/document.h"
+
+#include "load/load.h"
+
+#include "save/save.h"
+
 #endif

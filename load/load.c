@@ -1,9 +1,5 @@
 #include "cxml.h"
 
-#include "document/document.h"
-
-#include "load/load.h"
-
 static char * buffer = 0;
 
 typedef enum _TokenType { SPACE = ' ', NEWLINE = '\n', TAB = '\t',
@@ -779,6 +775,9 @@ static void parse_buffer(CXMLDocument * document) {
       document->node_count = document_node->node_count;
       document->nodes = document_node->nodes;
 
+      document->attribute_count = document_node->attribute_count;
+      document->attributes = document_node->attributes;
+
       return;
 
       int j = i;
@@ -885,7 +884,7 @@ static char * setup_buffer(const char * filename) {
   return buffer;
 }
 
-CXMLDocument * CXMLLoad(const char * filename) {
+CXMLDocument * CXMLDocument_Load(const char * filename) {
   CXMLDocument * document = 0;
 
   char * buf = setup_buffer(filename);

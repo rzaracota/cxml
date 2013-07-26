@@ -1,9 +1,5 @@
 #include "cxml.h"
 
-#include "document/document.h"
-
-#include "load/load.h"
-
 static void display_document(const CXMLDocument * document);
 
 int main(int argc, char * argv[]) {
@@ -13,9 +9,13 @@ int main(int argc, char * argv[]) {
 
   document = CXMLDocument_Destroy(document);
 
-  document = CXMLLoad("test/xml/scene.xml");
+  document = CXMLDocument_Load("test/xml/scene.xml");
 
   display_document(document);
+
+  printf("======================================Save======================================\n");
+
+  CXMLDocument_Save(document, "test/xml/test.xml");
 
   return 0;
 }

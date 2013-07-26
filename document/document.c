@@ -1,7 +1,5 @@
 #include "cxml.h"
 
-#include "document/document.h"
-
 CXMLDocument * CXMLDocument_Create(const char * resource) {
   CXMLDocument * document = (CXMLDocument *)malloc(sizeof (CXMLDocument));
 
