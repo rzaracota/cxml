@@ -15,7 +15,9 @@ int main(int argc, char * argv[]) {
 
   printf("======================================Save======================================\n");
 
-  CXMLDocument_Save(document, "test/xml/test.xml");
+  CXMLDocument_Save(document, "out.xml");
+
+  document = CXMLDocument_Destroy(document);
 
   return 0;
 }

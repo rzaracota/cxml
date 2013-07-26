@@ -896,7 +896,7 @@ CXMLDocument * CXMLDocument_Load(const char * filename) {
   parse_buffer(document);
 
   if (buffer != 0) {
-    free(buffer);
+    safe_free(buffer);
 
     buffer = 0;
   }

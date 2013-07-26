@@ -85,15 +85,15 @@ static void destroy_declaration(Declaration * declaration) {
   }
 
   if (declaration->version != 0) {
-    safe_free(declaration->version);
+    declaration->version = safe_free(declaration->version);
   }
 
   if (declaration->language != 0) {
-    safe_free(declaration->language);
+    declaration->language = safe_free(declaration->language);
   }
 
   if (declaration->encoding != 0) {
-    safe_free(declaration->encoding);
+    declaration->encoding = safe_free(declaration->encoding);
   }
 }
 

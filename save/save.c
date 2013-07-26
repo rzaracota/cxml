@@ -7,6 +7,9 @@ static void indent(FILE * fp, unsigned int depth);
 static void write_attribute(const Attribute * attribute, FILE * fp);
 static void write_attributes(const Node * const node, FILE * fp);
 
+static void write_element_footer(const Node * node, FILE * fp);
+static void write_element_header(const Node * node, FILE * fp);
+
 static void write_node(const Node * node, FILE * fp);
 static void write_document_nodes(const CXMLDocument * document, FILE * fp);
 
@@ -51,17 +54,15 @@ static void write_attributes(const Node * const node, FILE * fp) {
   }
 }
 
-static void write_node(const Node * node, FILE * fp) {
-  static int depth = 0;
-
-  if (node == 0) {
-    printf("##%s: null node##\n", error_msg);
-
-    return;
+static void write_element_footer(const Node * node, FILE * fp) {
+  if (node->node_count > 0) {
+    fprintf(fp, "</%s>\n", node->identifier);
+  } else if (node->pcdata != 0) {
+    fprintf(fp, "</%s>\n", node->identifier);
   }
+}
 
-  indent(fp, depth);
-
+static void write_element_header(const Node * node, FILE * fp) {
   fprintf(fp, "<%s", node->identifier);
 
   if (node->attribute_count > 0) {
@@ -75,6 +76,20 @@ static void write_node(const Node * node, FILE * fp) {
   } else {
     fprintf(fp, ">");
   }
+}
+
+static void write_node(const Node * node, FILE * fp) {
+  static int depth = 0;
+
+  if (node == 0) {
+    printf("##%s: null node##\n", error_msg);
+
+    return;
+  }
+
+  indent(fp, depth);
+
+  write_element_header(node, fp);
 
   if (node->node_count > 0) {
     for (int i = 0; i < node->node_count; i++) {
@@ -88,11 +103,9 @@ static void write_node(const Node * node, FILE * fp) {
 
   if (node->node_count > 0) {
     indent(fp, depth);
-
-    fprintf(fp, "</%s>\n", node->identifier);
-  } else if (node->pcdata != 0) {
-    fprintf(fp, "</%s>\n", node->identifier);
   }
+
+  write_element_footer(node, fp);
 
   if (depth > 0) {
     depth--;
