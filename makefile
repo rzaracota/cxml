@@ -21,3 +21,5 @@ clean-static:
 	find lib -name "*.a*" -exec rm -v {} \;
 clean-shared:
 	find lib -name "*.so*" -exec rm -v {} \;
+test-rebuild:
+	make -B objects test

@@ -2,7 +2,7 @@
 <scene name="test_scene" resource="assets/scenes/test_scene" binary_file="test_scene.sc">
   <objects count="2">
     <object name="object_1">
-      <id>0</id>
+      <id>-10</id>
       <mieru>true</mieru>
       <mesh resource="assets/models/octahedron" />
     </object>

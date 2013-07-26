@@ -25,10 +25,8 @@ typedef struct _Node {
   unsigned int attribute_count;
   unsigned int node_count;
   Attribute * attributes;
-  union {
-    struct _Node * nodes;
-    char * pcdata;
-  };
+  struct _Node * nodes;
+  char * pcdata;
 } Node;
 
 typedef struct _CXMLDocument {

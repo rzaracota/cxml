@@ -14,6 +14,34 @@ typedef enum _TokenType { SPACE = ' ', NEWLINE = '\n', TAB = '\t',
 
 enum { true = 1, false = 0 };
 
+static void display_attribute(const Attribute * attribute) {
+  printf("identifier: %s\n", attribute->identifier);
+  printf("value: %s\n", attribute->value);
+}
+
+static void display_node(const Node * const node) {
+  printf("--Node--\n");
+
+  printf("identifier: %s\n", node->identifier);
+  printf("attribute_count: %d\n", node->attribute_count);
+  printf("node_count: %d\n", node->node_count);
+
+  printf("--attributes--\n");
+
+  for (int i = 0; i < node->attribute_count; i++) {
+    display_attribute(node->attributes + i);
+  }
+
+
+  printf("--nodes--\n");
+
+  for (int i = 0; i < node->node_count; i++) {
+    display_node(node->nodes + i);
+  }
+
+  printf("pcdata: %s\n", node->pcdata);
+}
+
 static unsigned int whitespace(TokenType token) {
   if (token == SPACE || token == NEWLINE || token == TAB) {
     return true;
@@ -22,7 +50,47 @@ static unsigned int whitespace(TokenType token) {
   return false;
 }
 
+static unsigned int comment(char * const beg) {
+  if (*(beg + 1) == '!' &&
+      *(beg + 2) == '-' &&
+      *(beg + 3) == '-') {
+    return true;
+  }
+
+  return false;
+}
+
 static int _iterator = 0;
+
+static void kill_comment(char * const beg) {
+  int i = 0;
+
+  while (*(beg + i) != 0) {
+    if (*(beg + i) == RIGHT_ALLIGATOR &&
+	*(beg + i - 1) == '-' &&
+	*(beg + i - 2) == '-') {
+      _iterator = i + 1;
+
+      char * temp = (char *)malloc(sizeof (char) * (i - 2));
+
+      strncpy(temp, beg, i - 2);
+
+      temp[i - 2] = '\0';
+
+      printf("comment:\n%s\n", temp);
+
+      if (temp != 0) {
+	free(temp);
+
+	temp = 0;
+      }
+
+      break;
+    }
+
+    i++;
+  }
+}
 
 static char * get_value(char * const beg) {
   char * value = 0, * iter = beg, * begin = beg;
@@ -101,39 +169,47 @@ static char * get_identifier(char * const beg) {
   return identifier;
 }
 
+static char * get_pcdata(char * buf) {
+  char * pcdata = 0, * iter = buf, * begin = buf;
+
+  int length = 0;
+
+  while (*iter != 0 && whitespace(*iter)) {
+    while (whitespace(*iter++)) continue;
+
+    if (comment(iter)) {
+      kill_comment(iter);
+
+      iter += _iterator;
+    }
+  }
+
+  begin = iter;
+
+  while (*iter != 0 && *iter != LEFT_ALLIGATOR) {
+    iter++;
+    length++;
+  }
+
+  if (length > 0) {
+    pcdata = (char *)malloc(sizeof (char) * (length + 1));
+
+    strncpy(pcdata, begin, length);
+
+    pcdata[length] = '\0';
+  }
+
+  _iterator = iter - buf;
+
+  return pcdata;
+}
+
+static void get_attributes(char * const buf) {
+}
+
 static void add_attribute(CXMLDocument * document, char * attribute,
 			  char * value) {
   CXMLDocument_AddAttribute(document, attribute, value);
-}
-
-static void kill_comment(char * const beg) {
-  int i = 0;
-
-  while (*(beg + i) != 0) {
-    if (*(beg + i) == RIGHT_ALLIGATOR &&
-	*(beg + i - 1) == '-' &&
-	*(beg + i - 2) == '-') {
-      _iterator = i + 1;
-
-      char * temp = (char *)malloc(sizeof (char) * (i - 2));
-
-      strncpy(temp, beg, i - 2);
-
-      temp[i - 2] = '\0';
-
-      printf("comment:\n%s\n", temp);
-
-      if (temp != 0) {
-	free(temp);
-
-	temp = 0;
-      }
-
-      break;
-    }
-
-    i++;
-  }
 }
 
 static void parse_declaration(CXMLDocument * document, char * const beg) {
@@ -195,6 +271,395 @@ static void parse_declaration(CXMLDocument * document, char * const beg) {
   }		 
 }
 
+static Node * node_add_attribute(Node * node,
+				 Attribute * new_attribute) {
+  if (node == 0) {
+    printf("##cannot add attribute to null node##\n");
+
+    return 0;
+  }
+
+  Attribute * ab =  (Attribute *)malloc(sizeof (Attribute) *
+					(node->attribute_count + 1));
+
+  if (node->attribute_count != 0) {
+    memcpy(ab, node->attributes, sizeof (Attribute) * node->attribute_count);
+  }
+
+  if (false) {
+    printf("node_add_attribute\n");
+
+    printf("in:\n");
+
+    display_attribute(new_attribute);
+  }
+
+  ab[node->attribute_count].identifier = new_attribute->identifier;
+  ab[node->attribute_count].value = new_attribute->value;
+
+  if (false) {
+    printf("out:\n");
+
+    display_attribute(ab + node->attribute_count);
+  }
+
+  node->attributes = ab;
+  node->attribute_count++;
+
+  return node;
+}
+
+static Node * node_add_node(Node * node, Node * new_node) {
+  if (node == 0) {
+    return node;
+  }
+
+  printf("--node_add_node--\n");
+
+  printf("--destination node--\n");
+
+  display_node(node);
+
+  printf("--new_node--\n");
+
+  display_node(new_node);
+
+  printf("new_node->nodes: %p\n");
+
+  new_node->nodes = 0;
+
+  Node * node_buffer = (Node *)malloc(sizeof (Node) * (node->node_count + 1));
+
+  if (node->node_count > 0) {
+    memcpy(node_buffer, node->nodes, sizeof (Node) * (node->node_count)); 
+  }
+
+  memcpy(node_buffer + node->node_count, new_node, sizeof (Node));
+
+  node->node_count++;
+
+  safe_free(node->nodes);
+
+  node->nodes = node_buffer;
+
+  printf("--result node--\n");
+
+  printf("result node: %p\n", node->nodes[0].nodes);
+
+  return node;
+}
+
+static Node * parse_attributes(Node * node, char * const buf) {
+  if (node == 0) {
+    printf("##null node in parse_attributes.\n##");
+
+    return 0;
+  }
+
+  char short_string[16];
+
+  strncpy(short_string, buf, 15);
+
+  short_string[15] = '\0';
+
+  printf("parse_attributes\nshort_string: |%s|\n", short_string);
+
+  Attribute * attributes = 0;
+
+  char * iter = buf, * begin = buf;
+
+  if (*iter == RIGHT_ALLIGATOR ||
+      *iter == LEFT_ALLIGATOR ||
+      *iter == '/') {
+    printf("no attributes present\n");
+
+    //_iterator = 1;
+
+    return node;
+  } else if (whitespace(*iter)) {
+    while (whitespace(*(++iter)));
+  }
+
+  char * identifier = 0;
+  char * value = 0;
+
+  while (*iter != 0 && *iter != '/' && *iter != RIGHT_ALLIGATOR) {
+    while (whitespace(*(iter))) {
+      iter++;
+    }
+
+    identifier = get_identifier(iter);
+
+    iter += _iterator;
+
+    _iterator = 0;
+
+    value = get_value(iter);
+
+    iter += _iterator;
+
+    _iterator = 0;
+
+    printf("attribute: ['%s'] %s\n", identifier, value);
+
+    if (identifier != 0) {
+      Attribute attribute = { .identifier = identifier,
+			      .value = value };
+
+      node = node_add_attribute(node, &attribute);
+    }
+  }
+
+  _iterator = iter - buf;
+
+  printf("parse_attributes->display_node;\n");
+
+  display_node(node);
+
+  return node;
+}
+
+static char * _pcdata = 0;
+
+static int is_pcdata = 0;
+
+static Node * parse_node(char * const buf) {
+  char * iter = buf;
+
+  Node * node = 0;
+
+  char * identifier = 0;
+
+  Attribute * attributes = 0;
+
+  if (whitespace(*iter)) {
+    printf("##invalid space in node identifier.##\n");
+
+    return 0;
+  } else if (*iter == LEFT_ALLIGATOR) {
+    if (*(++iter) == '/') {
+      printf("close node\n");
+
+      _iterator = iter - buf;
+
+      return node;
+    } else {
+      identifier = get_identifier(iter);
+
+      iter += _iterator;
+
+      _iterator = 0;
+
+      node = (Node *)malloc(sizeof (Node));
+
+      node->identifier = identifier;
+
+      printf("node->identifier: %s\n", node->identifier);
+    }      
+  } else {
+    printf("##parse_node: this should not happen. %c##\n",
+	   *iter);
+
+    return 0;
+  }
+
+  while (whitespace(*iter)) iter++;
+
+  node = parse_attributes(node, iter);
+
+  iter += _iterator;
+
+  _iterator = 0;
+
+  printf("after parse_attributes:\n%s", iter);
+
+  if (*iter == RIGHT_ALLIGATOR) {
+    iter++;
+
+    printf("right_alligator - finish element\n");
+    printf("%s\n", iter);
+
+    while (iter != 0) {
+      if (whitespace(*(iter))) {
+	iter++;
+
+	continue;
+      } else if (comment(iter)) {
+	kill_comment(iter);
+
+	iter += _iterator;
+      } else if (*iter == LEFT_ALLIGATOR) {
+	printf("left_alligator - new node\n");
+	printf("%s\n", iter);
+
+	Node * n = parse_node(iter);
+
+	printf("-- display_node(node)--\n");
+
+	display_node(node);
+
+	printf("-- display_node(n)--\n");
+
+	display_node(n);
+	
+	iter += _iterator;
+
+	_iterator = 0;
+
+	if (is_pcdata) {
+	  printf("pcdata: %s\n", (char *)n);
+
+	  node->pcdata = (char *)malloc(sizeof (char) *
+					(strlen((char *)n) + 1));
+
+	  strncpy(node->pcdata, (char *)n, (strlen((char *)n) + 1));
+
+	  node->pcdata[strlen((char *)n)] = '\0';
+
+	  safe_free(n);
+
+	  is_pcdata = 0;
+
+	  printf("%s\n", iter);
+	} else if (n != 0) {
+	  node_add_node(node, n);
+
+	  printf("node_add_node no ato\n");
+
+	  display_node(node);
+
+	  safe_free(n);
+	} else if (*iter == '/') {
+	  printf("closing node.\n");
+
+	  char * id = get_identifier(iter + 1);
+	  
+	  iter += _iterator + 1;
+	  
+	  if (strcmp(node->identifier, id) == 0) {
+	    safe_free(id);
+
+	    printf("tags actually matched.\n");
+
+	    while (*iter != RIGHT_ALLIGATOR && *iter != 0) {
+	      iter++;
+	    }
+
+	    if (*iter != RIGHT_ALLIGATOR) {
+	      printf("##broken closing tag.##\n");
+
+	      return node;
+	    }
+
+	    iter++;
+
+	    break;
+	  } else {
+	    printf("mismatched element tags.\n");
+	  }
+
+	} else {
+	  printf("##unexpected null node in parse_node##\nctr%c", *iter);
+
+	  return 0;
+	}
+      } else {
+	printf("it should be pcdata\n");
+	printf("character: %c\n", *iter);
+
+        char short_string[16];
+
+	strncpy(short_string, iter, 15);
+
+	short_string[15] = '\0';
+
+	printf("pcdata\nshort_string: |%s|\n", short_string);
+
+	char * pcdata = get_pcdata(iter);
+
+	printf("result pcdata: %s\n", pcdata);
+
+	_pcdata = pcdata;
+
+	//is_pcdata = 1;
+
+	iter += _iterator;
+
+	//_iterator = 0;
+
+	//_iterator = iter - buf;
+
+	if (node->nodes != 0 && node->pcdata != 0) {
+	  printf("##unexpected nodes or pcdata found##\n");
+
+	  display_node(node);
+	} else {
+	  node->pcdata = pcdata;
+	}
+
+	printf("comfirming node closure.\n");
+
+	if (*iter != LEFT_ALLIGATOR &&
+	    *(iter + 1) != '/') {
+	  printf("##improper data after pcdata##\n%s", iter);
+	} else {
+	  char * id = get_identifier(iter + 2);
+
+	  iter += _iterator + 3;
+
+	  if (id == 0) {
+	    printf("##invalid closing tag##\n");
+
+	    return node;
+	  }
+
+	  if (strcmp(node->identifier, id) != 0) {
+	    printf("mismatched closing element.\n");
+	  }
+
+	  printf("leaving parse node with\n%s\n", iter);
+
+	  break;
+	}
+      }
+    }
+  }
+
+  _iterator = iter - buf;
+
+  display_node(node);
+
+  return node;
+}
+
+static Node * parse_nodes(char * const beg) {
+  char * iter = beg, * begin = beg;
+
+  Node * node = 0;
+
+  for (; *iter != 0; iter++) {
+    if (whitespace(*iter)) continue;
+
+    if (comment(iter)) {
+      kill_comment(iter);
+
+      iter += _iterator + 4;
+
+      _iterator = 0;
+    }
+
+    if (*iter == LEFT_ALLIGATOR) {
+      parse_node(iter);
+
+      iter += _iterator;
+
+      _iterator = 0;
+    }
+  }  
+
+  return node;
+}
+
 static void parse_buffer(CXMLDocument * document) {
   if (buffer == 0) {
     printf("Invalid buffer.\n");
@@ -231,6 +696,8 @@ static void parse_buffer(CXMLDocument * document) {
     identifier = get_identifier(buffer + i + 1);
 
     i += _iterator + 1;
+
+    _iterator = 0;
 
     if (strcmp(identifier, "?xml") == 0) {
       printf("xml declaration initial found; attempting to parse.\n");
@@ -314,7 +781,13 @@ static void parse_buffer(CXMLDocument * document) {
 	  return;
 	} else {
 	  printf("\033[0;32mdocument node parsing complete.\033[0m\n");
+
+	  Node * node = parse_nodes(buffer + j + 1);
 	  
+	  document->node_count = node->node_count;
+
+	  document->nodes = node->nodes;
+
 	  return;
 	}
       }
