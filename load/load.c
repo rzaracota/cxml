@@ -454,9 +454,11 @@ static Node * parse_node(char * const buf) {
     return 0;
   } else if (*iter == LEFT_ALLIGATOR) {
     if (*(++iter) == '/') {
-      printf("close node\n");
+      printf("close node\n%s\n", iter);
 
       _iterator = iter - buf;
+
+      printf("node: %p\n", node);
 
       return node;
     } else {
@@ -532,6 +534,8 @@ static Node * parse_node(char * const buf) {
 
 	_iterator = 0;
 
+	printf("left alligator:\n%s\n", iter);
+
 	if (n != 0) {
 	  node = node_add_node(node, n);
 
@@ -541,16 +545,18 @@ static Node * parse_node(char * const buf) {
 
 	  safe_free(n);
 	} else if (*iter == '/') {
-	  printf("closing node.\n");
+	  printf("closing node.\n%s", iter);
 
-	  char * id = get_identifier(iter + 1);
+	  char * id = 0;
+
+	  id = get_identifier(iter + 1);
 	  
 	  iter += _iterator + 1;
 	  
-	  if (strcmp(node->identifier, id) == 0) {
-	    safe_free(id);
+	  if (id != 0 && strcmp(node->identifier, id) == 0) {
+	    printf("tags actually matched.\nclosing %s..\n", id);
 
-	    printf("tags actually matched.\n");
+	    safe_free(id);
 
 	    while (*iter != RIGHT_ALLIGATOR && *iter != 0) {
 	      iter++;
@@ -564,7 +570,7 @@ static Node * parse_node(char * const buf) {
 
 	    iter++;
 
-	    printf("closing node node:\n");
+	    printf("closing node node:%s\n", iter);
 
 	    //display_node(node);
 
@@ -648,7 +654,6 @@ static Node * parse_node(char * const buf) {
     printf("##trailing / in attributes.##\n");
   }
 
-
   _iterator = iter - buf;
 
   printf("pre-exit node:\n");
@@ -677,7 +682,7 @@ static Node * parse_nodes(char * const beg) {
     }
 
     if (*iter == LEFT_ALLIGATOR) {
-      parse_node(iter);
+      node = parse_node(iter);
 
       iter += _iterator;
 
@@ -721,6 +726,8 @@ static void parse_buffer(CXMLDocument * document) {
       continue;
     }    
 
+    char * begin = buffer + i;
+
     identifier = get_identifier(buffer + i + 1);
 
     i += _iterator + 1;
@@ -761,6 +768,18 @@ static void parse_buffer(CXMLDocument * document) {
 
 	identifier = 0;
       }
+
+      Node * document_node = parse_nodes(begin);
+
+      printf("=============================document_node===================\n");
+
+      display_node(document_node);
+
+      document->resource = document_node->identifier;
+      document->node_count = document_node->node_count;
+      document->nodes = document_node->nodes;
+
+      return;
 
       int j = i;
 
@@ -811,10 +830,10 @@ static void parse_buffer(CXMLDocument * document) {
 	  printf("\033[0;32mdocument node parsing complete.\033[0m\n");
 
 	  Node * node = parse_nodes(buffer + j + 1);
-	  
-	  document->node_count = node->node_count;
 
 	  if (node != 0) {
+	    document->node_count = node->node_count;
+
 	    document->nodes = node->nodes;
 	  } else {
 	    printf("##document nodes are null.##\n");
