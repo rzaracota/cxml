@@ -5,8 +5,6 @@ void * safe_free(void * pointer) {
     free(pointer);
 
     pointer = 0;
-  } else {
-    printf("##Attempted to free null pointer.##\n");
   }
 
   return pointer;

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" lang="english" ?>
 <scene name="test_scene" resource="assets/scenes/test_scene" binary_file="test_scene.sc">
   <objects count="2">
+    <!-- this should not break the parser -->
     <object name="object_1">
       <id>-10</id>
       <mieru>true</mieru>
@@ -13,7 +14,7 @@
       <mesh resource="assets/models/level1.obj" />
     </object>
   </objects>
-  <zones>
+  <zones> <!-- neither should this -->
     <zone name="zone1">
       <position i="0" j="0" k="0" />
       <ref_objects count="1">

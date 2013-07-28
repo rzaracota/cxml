@@ -3,13 +3,11 @@
 CXMLDocument * CXMLDocument_Create(const char * resource) {
   CXMLDocument * document = (CXMLDocument *)malloc(sizeof (CXMLDocument));
 
-  if (resource == 0) {
-    return document;
+  if (resource != 0) {
+    document->resource = (char *)malloc(sizeof (char) * (strlen(resource) + 1));
+
+    strcpy(document->resource, resource);
   }
-
-  document->resource = (char *)malloc(sizeof (char) * (strlen(resource) + 1));
-
-  strcpy(document->resource, resource);
 
   document->attribute_count = 0;
   document->node_count = 0;
@@ -145,4 +143,83 @@ static CXMLDocument * destroy_document(CXMLDocument * document) {
 
 CXMLDocument * CXMLDocument_Destroy(CXMLDocument * document) {
   return destroy_document(document);
+}
+
+void cxml_display_attribute(const Attribute * attribute) {
+  printf("identifier: %s\n", attribute->identifier);
+  printf("value: %s\n", attribute->value);
+}
+
+void cxml_display_node(const Node * const node) {
+  printf("--Node--\n");
+
+  if (node == 0) {
+    printf("##can not display null node##\n");
+
+    return;
+  }
+
+  printf("identifier: %s\n", node->identifier);
+  printf("attribute_count: %d\n", node->attribute_count);
+  printf("node_count: %d\n", node->node_count);
+
+  printf("--attributes--\n");
+
+  for (int i = 0; i < node->attribute_count; i++) {
+    cxml_display_attribute(node->attributes + i);
+  }
+
+  printf("--nodes--\n");
+
+  for (int i = 0; i < node->node_count; i++) {
+    cxml_display_node(node->nodes + i);
+  }
+
+  printf("pcdata: %s\n", node->pcdata);
+}
+
+Node * CXMLDocument_Node_Add_Attribute(Node * node,
+				       Attribute * new_attribute) {
+  if (node == 0) {
+    printf("##cannot add attribute to null node##\n");
+
+    return 0;
+  }
+
+  Attribute * ab =  (Attribute *)malloc(sizeof (Attribute) *
+					(node->attribute_count + 1));
+
+  if (node->attribute_count != 0) {
+    memcpy(ab, node->attributes, sizeof (Attribute) * node->attribute_count);
+  }
+
+  ab[node->attribute_count].identifier = new_attribute->identifier;
+  ab[node->attribute_count].value = new_attribute->value;
+
+  node->attributes = ab;
+  node->attribute_count++;
+
+  return node;
+}
+
+Node * CXMLDocument_Node_Add_Node(Node * node, Node * new_node) {
+  if (node == 0) {
+    return node;
+  }
+
+  Node * node_buffer = (Node *)malloc(sizeof (Node) * (node->node_count + 1));
+
+  if (node->node_count > 0) {
+    memcpy(node_buffer, node->nodes, sizeof (Node) * (node->node_count)); 
+  }
+
+  memcpy(node_buffer + node->node_count, new_node, sizeof (Node));
+
+  node->node_count++;
+
+  safe_free(node->nodes);
+
+  node->nodes = node_buffer;
+
+  return node;
 }

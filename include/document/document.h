@@ -9,4 +9,12 @@ CXMLDocument * CXMLDocument_AddAttribute(CXMLDocument * document,
 
 CXMLDocument * CXMLDocument_Destroy(CXMLDocument * document);
 
+Node * CXMLDocument_Node_Add_Node(Node * node, Node * new_node);
+Node * CXMLDocument_Node_Add_Attribute(Node * node, Attribute * attribute);
+
+void cxml_display_node(const Node * const node);
+void cxml_display_attribute(const Attribute * attribute);
+
+
+
 #endif
