@@ -11,11 +11,11 @@ int main(int argc, char * argv[]) {
 
   document = CXMLDocument_Load("test/xml/scene.xml");
 
-  display_document(document);
+  //display_document(document);
 
   printf("======================================Save======================================\n");
 
-  CXMLDocument_Save(document, "out.xml");
+  CXMLDocument_Save(document, 0);
 
   document = CXMLDocument_Destroy(document);
 

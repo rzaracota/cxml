@@ -34,7 +34,6 @@ static void display_node(const Node * const node) {
     display_attribute(node->attributes + i);
   }
 
-
   printf("--nodes--\n");
 
   for (int i = 0; i < node->node_count; i++) {
@@ -206,12 +205,125 @@ static char * get_pcdata(char * buf) {
   return pcdata;
 }
 
+/*
+ * Begin cleanup
+ */
+
+static char * clean_get_identifier(char * const beg) {
+  char * identifier = 0, * iter = beg;
+
+  int i = 0;
+
+  while (whitespace(iter[i]) == false &&
+	 iter[i] != FORWARD_SLASH &&
+	 iter[i] != RIGHT_ALLIGATOR &&
+	 iter[i] != SINGLE_QUOTE &&
+	 iter[i] != DOUBLE_QUOTE &&
+	 iter[i] != EQUALS &&
+	 iter[i] != 0) {
+    i++;
+  }
+
+  _iterator = i;
+
+  identifier = (char *)malloc(sizeof (char *) * (i + 1));
+
+  if (identifier == 0) {
+    printf("##memory allocation error.##\n");
+
+    return identifier;
+  }
+
+  strncpy(identifier, beg, i);
+
+  identifier[i] = '\0';
+
+  printf("identifier: |%s|\n", identifier);
+
+  return identifier;
+}
+
+/*
+ * End cleanup section
+ */
+
+static Node * parse_attributes(Node * node, char * const buf);
+
 static void get_attributes(char * const buf) {
 }
 
 static void add_attribute(CXMLDocument * document, char * attribute,
 			  char * value) {
   CXMLDocument_AddAttribute(document, attribute, value);
+}
+
+static void clean_parse_declaration(CXMLDocument * document,
+				    char ** iterator) {
+  char * iter = *iterator, * begin = *iterator;
+
+  if (document == 0) {
+    printf("##null document##\n");
+
+    return;
+  }
+
+  *iterator += 2;
+
+  char * xml = get_identifier(*iterator);
+
+  *iterator += _iterator;
+
+  _iterator = 0;
+
+  if (strcmp(xml, "xml") != 0) {
+    printf("##invalid declaration node##\n");
+
+    while (**iterator != RIGHT_ALLIGATOR) {
+      *iterator++;
+    }
+  }
+
+  Node * node = create_node();
+
+  if (node == 0) {
+    printf("##failed to allocate memory for node##\n");
+
+    return;
+  }
+
+  node = parse_attributes(node, *iterator);
+
+  *iterator += _iterator;
+
+  _iterator = 0;
+
+  for (int i = 0; i < node->attribute_count; i++) {
+    char * id = node->attributes[i].identifier;
+    char * value = node->attributes[i].value;
+
+    if (strcmp("version", id) == 0) {
+      document->declaration.version = value;
+    } else if (strcmp("encoding", id) == 0) {
+      document->declaration.encoding = value;
+    } else if (strcmp("language", id) == 0 || strcmp("lang", id) == 0) {
+      document->declaration.language = value;
+    } else {
+      printf("##invalid declaration attribute: [%s] %s##\n",
+	     id, value);
+    }
+  }
+
+  if (**iterator != '?' || *(*iterator + 1) != RIGHT_ALLIGATOR) {
+    printf("##invalid declaration close##\n");
+
+    while (**iterator != '>') {
+      *iterator++;
+    }
+  } else {
+    *iterator += 2;
+  }
+
+  safe_free(node);
 }
 
 static void parse_declaration(CXMLDocument * document, char * const beg) {
@@ -270,7 +382,9 @@ static void parse_declaration(CXMLDocument * document, char * const beg) {
     } else {
       printf("Unsupported declaration attribute: %s\n", identifier);
     }
-  }		 
+  }
+
+  _iterator = iter - beg;
 }
 
 static Node * node_add_attribute(Node * node,
@@ -388,7 +502,7 @@ static Node * parse_attributes(Node * node, char * const buf) {
       iter++;
     }
 
-    if (*iter == '/' || *iter == RIGHT_ALLIGATOR) {
+    if (*iter == '/' || *iter == RIGHT_ALLIGATOR || *iter == '?') {
       break;
     }
 
@@ -427,6 +541,211 @@ static Node * parse_attributes(Node * node, char * const buf) {
   //printf("parse_attributes->display_node;\n");
 
   //display_node(node);
+
+  return node;
+}
+
+static void skip_comment(char ** iterator) {
+  char * beg = *iterator;
+
+  int i = 0;
+
+  while (*(beg + i) != 0) {
+    if (*(beg + i) == RIGHT_ALLIGATOR &&
+	*(beg + i - 1) == '-' &&
+	*(beg + i - 2) == '-') {
+      _iterator = i + 1;
+
+      char * temp = (char *)malloc(sizeof (char) * (i - 2));
+
+      strncpy(temp, beg, i - 2);
+
+      temp[i - 2] = '\0';
+
+      printf("comment:\n%s\n", temp);
+
+      if (temp != 0) {
+	free(temp);
+
+	temp = 0;
+      }
+
+      break;
+    }
+
+    i++;
+  }
+
+  *iterator += i + 1;
+}
+
+static void skip_wac(char ** iterator) {
+  while (**iterator != 0) {
+    if (comment(*iterator)) {
+      skip_comment(&(*iterator));
+    } else if (!whitespace(**iterator)) {
+      break;
+    }
+
+    (*iterator)++;
+  }
+}
+
+static char * clean_get_pcdata(char ** iterator) {
+  printf("==clean_get_pcdata==\n%s\n", *iterator);
+
+  char * pcdata = 0, * iter = *iterator, * begin = *iterator;
+
+  int length = 0;
+
+  begin = iter;
+
+  while (*iter != 0 && *iter != LEFT_ALLIGATOR) {
+    iter++;
+    length++;
+  }
+
+  if (length > 0) {
+    pcdata = (char *)malloc(sizeof (char) * (length + 1));
+
+    strncpy(pcdata, begin, length);
+
+    pcdata[length] = '\0';
+  }
+
+  (*iterator) += iter - begin;
+
+  return pcdata;
+}
+
+static Node * parse_opening_element(char ** iterator) {
+  printf("parse_opening_element\n%s", *iterator);
+
+  if (**iterator != LEFT_ALLIGATOR) {
+    return 0;
+  }
+
+  Node * node = create_node();
+
+  (*iterator)++;
+
+  char * shield = *iterator;
+
+  char * identifier = get_identifier(shield);
+
+  (*iterator) += _iterator;
+
+  _iterator = 0;
+
+  if (identifier == 0) {
+    safe_free(node);
+
+    return 0;
+  }
+
+  node->identifier = (char *)malloc(sizeof (char) * (strlen(identifier) + 1));
+
+  strcpy(node->identifier, identifier);
+
+  if (**iterator == ' ') {
+    shield = *iterator;
+
+    node = parse_attributes(node, shield);
+
+    *iterator += _iterator;
+
+    _iterator = 0;
+  }
+
+  if (**iterator == '/') {
+    (*iterator)++;
+  }
+
+  (*iterator)++;
+
+  return node;
+}
+
+static Node * parse_closing_element(Node * node, char ** iterator) {
+  printf("parse_closing_element\n%s", *iterator);
+
+  if (node == 0) {
+    return 0;
+  }
+
+  (*iterator)++;
+
+  if (**iterator != '/') {
+    return node;
+  }
+
+  (*iterator)++;
+
+  char * identifier = get_identifier(*iterator);
+
+  *iterator += _iterator;
+
+  _iterator = 0;
+
+  if (**iterator != RIGHT_ALLIGATOR) {
+    printf("##illformatted closing node.##\n");
+  } else {
+    (*iterator)++;
+  }
+
+  if (strcmp(node->identifier, identifier) != 0) {
+    printf("##Mistmatched closing node.##\n");
+  }
+
+  return node;
+}
+
+static Node * clean_parse_node(char ** iterator) {
+  skip_wac(&(*iterator));
+
+  printf("===================clean_parse_node==================\n");
+
+  Node * node = 0;
+
+  node = parse_opening_element(&(*iterator));
+
+  if (node == 0) {
+    printf("##invalid node##\n");
+  
+    return 0;
+  }
+
+  if (*(*iterator - 1) != RIGHT_ALLIGATOR) {
+    printf("##invalid opening element##\n");
+
+    return 0;
+  } else if (*(*iterator - 2) == '/') {
+    return node;
+  }
+
+  while (*(*iterator) != 0) {
+    skip_wac(&(*iterator));
+
+    if (*(*iterator) != LEFT_ALLIGATOR) {
+      node->pcdata = clean_get_pcdata(&(*iterator));
+    } else if (*(*iterator + 1) != '/') {
+      Node * new_node = clean_parse_node(&(*iterator));
+
+      if (new_node != 0) {
+	printf("new_node\n");
+
+	display_node(new_node);
+
+	node = node_add_node(node, new_node);
+
+	safe_free(new_node);
+      }
+    } else {
+      parse_closing_element(node, iterator);
+
+      break;
+    }
+  }
 
   return node;
 }
@@ -533,7 +852,13 @@ static Node * parse_node(char * const buf) {
 	printf("left alligator:\n%s\n", iter);
 
 	if (n != 0) {
-	  node = node_add_node(node, n);
+	  if (is_pcdata == 1) {
+	    node->pcdata = (char *)n;
+
+	    is_pcdata = 0;
+	  } else {
+	    node = node_add_node(node, n);
+	  }
 
 	  //printf("node_add_node no ato\n");
 
@@ -600,7 +925,7 @@ static Node * parse_node(char * const buf) {
 
 	_pcdata = pcdata;
 
-	//is_pcdata = 1;
+	is_pcdata = 1;
 
 	iter += _iterator;
 
@@ -884,6 +1209,30 @@ static char * setup_buffer(const char * filename) {
   return buffer;
 }
 
+static char * hybridize_name(char * const resource, char * const identifier) {
+  char * hybrid_name = 0;
+
+  if (resource != 0 && identifier != 0) {
+    hybrid_name = (char *)malloc(sizeof (char) *
+				 (strlen(resource) +
+				  (strlen(identifier) + 1 + 1)));
+    strncpy(hybrid_name, resource, strlen(resource));
+    hybrid_name[strlen(resource)] = '#';
+
+    strcpy(hybrid_name + strlen(resource) + 1, identifier);
+  } else if (identifier == 0){
+    hybrid_name = resource;
+  } else if (resource == 0) {
+    hybrid_name = identifier;
+  } else {
+    printf("##resource and identifier were both null..##\n");
+
+    hybrid_name = 0;
+  }
+
+  return hybrid_name;
+}
+
 CXMLDocument * CXMLDocument_Load(const char * filename) {
   CXMLDocument * document = 0;
 
@@ -893,7 +1242,35 @@ CXMLDocument * CXMLDocument_Load(const char * filename) {
     document = CXMLDocument_Create(filename);
   }
 
-  parse_buffer(document);
+  //parse_buffer(document);
+
+  printf("====================clean_parse_node==================\n");
+
+  //CXMLDocument_Destroy(document);
+
+  char * iterator = buffer;
+
+  skip_wac(&iterator);
+
+  if (*iterator == LEFT_ALLIGATOR && *(iterator + 1) == '?') {
+    clean_parse_declaration(document, &iterator);
+  }
+
+  skip_wac(&iterator);
+
+  if (*iterator == LEFT_ALLIGATOR) {
+    Node * node = clean_parse_node(&iterator);
+
+    document->attribute_count = node->attribute_count;
+    document->attributes = node->attributes;
+
+    document->node_count = node->node_count;
+    document->nodes = node->nodes;
+
+    document->resource = hybridize_name(document->resource, node->identifier);
+  } else {
+    printf("##invalid file##\n%s", iterator);
+  }
 
   if (buffer != 0) {
     safe_free(buffer);

@@ -1,4 +1,4 @@
-all: static shared
+all: static shared test-rebuild
 static: objects
 	ar rcs lib/libCXML.a.0.1 objects/document/document.o objects/load/load.o objects/save/save.o objects/cxml.o
 	ln -fsv ./libCXML.a.0.1 lib/libCXML.a

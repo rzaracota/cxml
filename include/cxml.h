@@ -41,6 +41,8 @@ typedef struct _CXMLDocument {
   };
 } CXMLDocument;
 
+Node * create_node(void);
+
 #include "document/document.h"
 
 #include "load/load.h"

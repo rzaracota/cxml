@@ -11,3 +11,11 @@ void * safe_free(void * pointer) {
 
   return pointer;
 }
+
+Node * create_node(void) {
+  Node * node = (Node *)malloc(sizeof (Node));
+
+  memset(node, 0, sizeof (Node));
+
+  return node;
+}
