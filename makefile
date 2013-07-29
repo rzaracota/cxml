@@ -1,10 +1,10 @@
 all: static shared test-rebuild
 static: objects
-	ar rcs lib/libCXML.a.0.1 objects/document/document.o objects/load/load.o objects/save/save.o objects/cxml.o
-	ln -fsv ./libCXML.a.0.1 lib/libCXML.a
+	ar rcs lib/libCXML.a.1.0 objects/document/document.o objects/load/load.o objects/save/save.o objects/cxml.o
+	ln -fsv ./libCXML.a.1.0 lib/libCXML.a
 shared: static
-	gcc -shared -Wl,-soname,libCXML.so.0.1 objects/document/document.o objects/load/load.o -o lib/libCXML.so.0.1
-	ln -fsv ./libCXML.so.0.1 lib/libCXML.so
+	gcc -shared -Wl,-soname,libCXML.so.1.0 objects/document/document.o objects/load/load.o -o lib/libCXML.so.1.0
+	ln -fsv ./libCXML.so.1.0 lib/libCXML.so
 objects: document load save cxml.c
 	gcc -std=c99 -Iinclude cxml.c -g -c -o objects/cxml.o
 document: document/document.c
