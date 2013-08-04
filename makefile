@@ -6,7 +6,7 @@ shared: static
 	gcc -shared -Wl,-soname,libCXML.so.1.0 objects/document/document.o objects/load/load.o -o lib/libCXML.so.1.0
 	ln -fsv ./libCXML.so.1.0 lib/libCXML.so
 objects: document load save cxml.c
-	gcc -std=c99 -Iinclude cxml.c -g -c -o objects/cxml.o
+	gcc -std=c99 -Iinclude cxml.c -fpic -g -c -o objects/cxml.o
 document: document/document.c
 	gcc -std=c99 -Iinclude document/document.c -fpic -g -c -o objects/document/document.o
 load: load/load.c

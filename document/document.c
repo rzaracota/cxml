@@ -16,6 +16,8 @@ CXMLDocument * CXMLDocument_Create(const char * resource) {
 
   document->nodes = 0;
 
+  memset(&document->declaration, 0, sizeof (Declaration));
+
   return document;
 }
 
@@ -222,4 +224,44 @@ Node * CXMLDocument_Node_Add_Node(Node * node, Node * new_node) {
   node->nodes = node_buffer;
 
   return node;
+}
+
+Node * cxml_get_node(Node * nodes, const unsigned int node_count,
+		     const char * const node_name) {
+  Node * node = 0;
+
+  for (int i = 0; i < node_count; i++) {
+    if (strcmp(nodes[i].identifier, node_name) == 0) {
+      node = nodes + i;
+
+      break;
+    }
+  }
+
+  return node;
+}
+
+char * cxml_get_attribute_value(const Attribute * attributes,
+				const unsigned int attribute_count,
+				const char * const attribute_name) {
+  char * attribute = 0;
+
+  for (int i = 0; i < attribute_count; i++) {
+    if (strcmp(attributes[i].identifier, attribute_name) == 0) {
+      attribute = (char *)malloc(sizeof (char) *
+				 (strlen(attributes[i].value) + 1));
+
+      if (attribute == 0) {
+	printf("Failed to allocate memory for attribute");
+
+	return 0;
+      }
+
+      strcpy(attribute, attributes[i].value);
+
+      break;
+    }
+  }
+
+  return attribute;
 }
