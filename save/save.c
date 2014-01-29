@@ -34,6 +34,8 @@ void CXMLDocument_Save(CXMLDocument * document,
   write_declaration(&document->declaration, fp);
 
   write_document_nodes(document, fp);
+
+  fclose(fp);
 }
 
 static void indent(FILE * fp, unsigned int depth) {
