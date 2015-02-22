@@ -7,6 +7,8 @@ CXMLDocument * CXMLDocument_Create(const char * resource) {
     document->resource = (char *)malloc(sizeof (char) * (strlen(resource) + 1));
 
     strcpy(document->resource, resource);
+  } else {
+    document->resource = 0;
   }
 
   document->attribute_count = 0;
